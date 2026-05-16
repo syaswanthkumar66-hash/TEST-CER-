@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoTYK Auto-Provisioner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen flex items-center justify-center p-4">
+
+    <div class="w-full max-w-md bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl p-6 space-y-6">
+        
+        <div>
+            <h2 class="text-2xl font-bold text-white tracking-wide">Add Device to EMQX</h2>
+            <p class="text-sm text-gray-400 mt-1">Registers MQTT credentials securely via Vercel Backend.</p>
+        </div>
+
+        <hr class="border-gray-800" />
+
+        <div class="space-y-4">
+            <div>
+                <label class="block text-xs text-gray-400 mb-1">New MQTT Username</label>
+                <input id="mqttUser" type="text" placeholder="e.g., esp32_sensor_01" 
+                       class="w-full bg-gray-950 border border-gray-800 rounded-lg px-3 py-3 text-sm text-white focus:outline-none focus:border-blue-500 transition">
+            </div>
+            <div>
+                <label class="block text-xs text-gray-400 mb-1">New MQTT Password</label>
+                <input id="mqttPass" type="text" placeholder="e.g., mySecurePass123" 
+                       class="w-full bg-gray-950 border border-gray-800 rounded-lg px-3 py-3 text-sm text-white focus:outline-none focus:border-blue-500 transition">
+            </div>
+        </div>
+
+        <button id="submitBtn" onclick="provisionDevice()" 
+                class="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-lg py-3 transition-all shadow-lg">
+            Create User in EMQX
+        </button>
+        
+        <div id="statusBox" class="hidden p-3 rounded-lg border text-xs font-mono transition-all">
+            Ready
+        </div>
+    </div>
+
+    <script>
+        async function provisionDevice() {
+            const btn = document.getElementById('submitBtn');
+            const username = document.getElementById('mqttUser').value.trim();
+            const password = document.getElementById('mqttPass').value.trim();
+
+            if (!username || !password) {
+                showStatus('Error: Username and Password required.', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = 'Communicating with Vercel...';
+            showStatus('Sending credentials to backend API...', 'info');
+
+            try {
+                // Notice: We are calling our own Vercel API route here, NOT EMQX directly. This avoids CORS.
+                const response = await fetch('/api/provision', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showStatus(`✅ Success: ${data.message}`, 'success');
+                    document.getElementById('mqttUser').value = '';
+                    document.getElementById('mqttPass').value = '';
+                } else {
+                    showStatus(`❌ Error: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showStatus('❌ Network Error: Could not reach Vercel API', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Create User in EMQX';
+            }
+        }
+
+        function showStatus(msg, type) {
+            const box = document.getElementById('statusBox');
+            box.className = 'p-3 rounded-lg border text-xs font-mono transition-all block mt-4';
+            
+            if (type === 'error') {
+                box.classList.add('bg-red-950/50', 'border-red-800', 'text-red-400');
+            } else if (type === 'success') {
+                box.classList.add('bg-emerald-950/50', 'border-emerald-800', 'text-emerald-400');
+            } else {
+                box.classList.add('bg-blue-950/50', 'border-blue-800', 'text-blue-400');
+            }
+            box.innerText = msg;
+        }
+    </script>
+</body>
+</html>
