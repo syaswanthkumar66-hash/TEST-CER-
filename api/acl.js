@@ -26,23 +26,31 @@ export default async function handler(req, res) {
                 'Content-Type': 'application/json',
                 'Authorization': `Basic ${token}`
             },
-            body: JSON.stringify({
-                username: username,
-                rules: [
-                    {
-                        permission: "allow",
-                        action: action || "all", // "publish", "subscribe", or "all"
-                        topics: [topic]
-                    }
-                ]
-            })
+            // FIX: Wrapped the entire payload in an Array [ ] 
+            // FIX: Changed "topics: [topic]" to "topic: topic"
+            body: JSON.stringify([
+                {
+                    username: username,
+                    rules: [
+                        {
+                            permission: "allow",
+                            action: action || "all", 
+                            topic: topic
+                        }
+                    ]
+                }
+            ])
         });
 
         if (response.ok || response.status === 204) {
             return res.status(200).json({ success: true, message: `Granted ${username} access to ${topic}` });
         } else {
             const errorData = await response.json();
-            return res.status(response.status).json({ success: false, error: errorData.message || 'EMQX API Rejected the Request' });
+            // Stringify the error so it displays cleanly in the UI instead of throwing an object object error
+            return res.status(response.status).json({ 
+                success: false, 
+                error: errorData.message || JSON.stringify(errorData) 
+            });
         }
     } catch (error) {
         console.error(error);
