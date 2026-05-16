@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoTYK Dual Client Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen p-6 font-sans">
+
+    <div class="max-w-6xl mx-auto space-y-6">
+        
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 shadow-xl">
+            <h2 class="text-2xl font-bold text-white">Live MQTT ACL Simulator</h2>
+            <p class="text-sm text-gray-400 mb-4">Test Pub/Sub isolation and shared topics between two active devices.</p>
+            
+            <div class="flex items-center gap-4">
+                <div class="flex-1">
+                    <label class="block text-xs text-gray-400 mb-1">EMQX WebSocket URL</label>
+                    <input id="brokerUrl" type="text" placeholder="wss://your-broker-id.emqxsl.com:8084/mqtt" 
+                           class="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition">
+                </div>
+                <div class="text-xs text-blue-400 mt-5 whitespace-nowrap">
+                    ⚠️ Must use <span class="font-bold">wss://</span> and port <span class="font-bold">:8084/mqtt</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 shadow-xl flex flex-col h-[600px]">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-emerald-400 text-lg">Device A</h3>
+                    <span id="status1" class="text-xs font-mono bg-gray-800 px-2 py-1 rounded-md text-gray-400">Disconnected</span>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-2 mb-4">
+                    <input id="user1" type="text" placeholder="Username" class="bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-sm text-white">
+                    <input id="pass1" type="password" placeholder="Password" class="bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-sm text-white">
+                </div>
+                <button onclick="toggleConnection(1)" id="btnConn1" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg py-2 text-sm font-bold mb-6">Connect Device A</button>
+
+                <div id="actions1" class="space-y-4 opacity-50 pointer-events-none flex-1 flex flex-col">
+                    <div class="flex gap-2">
+                        <input id="subTopic1" type="text" placeholder="Topic to Subscribe" class="flex-1 bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-sm text-white">
+                        <button onclick="subscribe(1)" class="bg-gray-800 hover:bg-gray-700 text-white px-4 rounded-lg text-sm">Sub</button>
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <input id="pubTopic1" type="text" placeholder="Target Topic" class="flex-1 bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-sm text-white">
+                        <input id="pubMsg1" type="text" placeholder="Message" class="flex-1 bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-sm text-white">
+                        <button onclick="publish(1)" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 rounded-lg text-sm font-bold">Pub</button>
+                    </div>
+
+                    <div class="mt-4 flex-1 bg-gray-950 border border-gray-800 rounded-lg p-3 overflow-y-auto font-mono text-xs flex flex-col-reverse" id="log1">
+                        </div>
+                </div>
+            </div>
+
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 shadow-xl flex flex-col h-[600px]">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-purple-400 text-lg">Device B</h3>
+                    <span id="status2" class="text-xs font-mono bg-gray-800 px-2 py-1 rounded-md text-gray-400">Disconnected</span>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-2 mb-4">
+                    <input id="user2" type="text" placeholder="Username" class="bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-sm text-white">
+                    <input id="pass2" type="password" placeholder="Password" class="bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-sm text-white">
+                </div>
+                <button onclick="toggleConnection(2)" id="btnConn2" class="w-full bg-purple-600 hover:bg-purple-500 text-white rounded-lg py-2 text-sm font-bold mb-6">Connect Device B</button>
+
+                <div id="actions2" class="space-y-4 opacity-50 pointer-events-none flex-1 flex flex-col">
+                    <div class="flex gap-2">
+                        <input id="subTopic2" type="text" placeholder="Topic to Subscribe" class="flex-1 bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-sm text-white">
+                        <button onclick="subscribe(2)" class="bg-gray-800 hover:bg-gray-700 text-white px-4 rounded-lg text-sm">Sub</button>
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <input id="pubTopic2" type="text" placeholder="Target Topic" class="flex-1 bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-sm text-white">
+                        <input id="pubMsg2" type="text" placeholder="Message" class="flex-1 bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-sm text-white">
+                        <button onclick="publish(2)" class="bg-purple-600 hover:bg-purple-500 text-white px-4 rounded-lg text-sm font-bold">Pub</button>
+                    </div>
+
+                    <div class="mt-4 flex-1 bg-gray-950 border border-gray-800 rounded-lg p-3 overflow-y-auto font-mono text-xs flex flex-col-reverse" id="log2">
+                        </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        let clients = { 1: null, 2: null };
+
+        function logMsg(id, msg, color = 'text-gray-400') {
+            const logBox = document.getElementById(`log${id}`);
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `mb-1 ${color}`;
+            entry.innerHTML = `<span class="text-gray-600">[${time}]</span> ${msg}`;
+            logBox.prepend(entry);
+        }
+
+        function toggleConnection(id) {
+            if (clients[id] && clients[id].connected) {
+                // Disconnect logic
+                clients[id].end();
+                clients[id] = null;
+                document.getElementById(`status${id}`).innerText = 'Disconnected';
+                document.getElementById(`status${id}`).className = 'text-xs font-mono bg-gray-800 px-2 py-1 rounded-md text-gray-400';
+                document.getElementById(`btnConn${id}`).innerText = `Connect Device ${id === 1 ? 'A' : 'B'}`;
+                document.getElementById(`btnConn${id}`).classList.replace('bg-red-600', id === 1 ? 'bg-emerald-600' : 'bg-purple-600');
+                document.getElementById(`actions${id}`).classList.add('opacity-50', 'pointer-events-none');
+                logMsg(id, 'Disconnected from broker.', 'text-red-400');
+                return;
+            }
+
+            // Connect logic
+            const url = document.getElementById('brokerUrl').value.trim();
+            const username = document.getElementById(`user${id}`).value.trim();
+            const password = document.getElementById(`pass${id}`).value.trim();
+
+            if (!url || !username || !password) return alert('Broker URL, Username, and Password are required!');
+
+            logMsg(id, 'Attempting connection...', 'text-blue-400');
+
+            const client = mqtt.connect(url, {
+                username: username,
+                password: password,
+                clientId: `web_sim_${id}_${Math.random().toString(16).substr(2, 8)}`
+            });
+
+            client.on('connect', () => {
+                document.getElementById(`status${id}`).innerText = 'Live 🟢';
+                document.getElementById(`status${id}`).className = 'text-xs font-mono bg-emerald-900 px-2 py-1 rounded-md text-emerald-400';
+                document.getElementById(`btnConn${id}`).innerText = 'Disconnect';
+                document.getElementById(`btnConn${id}`).classList.replace(id === 1 ? 'bg-emerald-600' : 'bg-purple-600', 'bg-red-600');
+                document.getElementById(`actions${id}`).classList.remove('opacity-50', 'pointer-events-none');
+                logMsg(id, 'Successfully Authenticated!', 'text-emerald-400');
+            });
+
+            client.on('error', (err) => {
+                logMsg(id, `Connection Error: ${err.message || 'Check credentials'}`, 'text-red-500');
+                client.end();
+            });
+
+            client.on('message', (topic, message) => {
+                logMsg(id, `📥 [${topic}] ${message.toString()}`, 'text-blue-300 font-bold');
+            });
+
+            clients[id] = client;
+        }
+
+        function subscribe(id) {
+            const topic = document.getElementById(`subTopic${id}`).value.trim();
+            if (!topic) return;
+            clients[id].subscribe(topic, (err) => {
+                if (err) logMsg(id, `❌ Failed to subscribe: ACL Denied`, 'text-red-400');
+                else logMsg(id, `✅ Subscribed to: ${topic}`, 'text-emerald-400');
+            });
+        }
+
+        function publish(id) {
+            const topic = document.getElementById(`pubTopic${id}`).value.trim();
+            const msg = document.getElementById(`pubMsg${id}`).value.trim();
+            if (!topic || !msg) return;
+            
+            clients[id].publish(topic, msg, { qos: 0 }, (err) => {
+                if (err) logMsg(id, `❌ Publish blocked by ACL!`, 'text-red-500 font-bold');
+                else logMsg(id, `📤 Sent to [${topic}]: ${msg}`, 'text-gray-300');
+            });
+        }
+    </script>
+</body>
+</html>
