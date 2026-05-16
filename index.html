@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IoTYK Device Manager</title>
+    <title>IoTYK Complete Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-950 text-gray-100 min-h-screen flex items-center justify-center p-4 font-sans">
@@ -12,8 +12,8 @@
         
         <!-- Header -->
         <div>
-            <h2 class="text-2xl font-bold text-white tracking-wide">IoTYK Admin</h2>
-            <p class="text-sm text-gray-400 mt-1">Manage EMQX MQTT credentials securely via Vercel.</p>
+            <h2 class="text-2xl font-bold text-white tracking-wide">IoTYK Admin Center</h2>
+            <p class="text-sm text-gray-400 mt-1">Full MQTT Lifecycle Management via Vercel.</p>
         </div>
 
         <hr class="border-gray-800" />
@@ -22,61 +22,84 @@
         <div class="space-y-4">
             <h3 class="text-sm font-semibold text-emerald-400 uppercase tracking-wider">1. Provision Device</h3>
             <div>
-                <label class="block text-xs text-gray-400 mb-1">New MQTT Username</label>
-                <input id="mqttUser" type="text" placeholder="e.g., esp32_sensor_01" 
+                <input id="mqttUser" type="text" placeholder="New Username (e.g., esp32_01)" 
+                       class="w-full bg-gray-950 border border-gray-800 rounded-lg px-3 py-3 text-sm text-white focus:outline-none focus:border-emerald-500 transition mb-2">
+                <input id="mqttPass" type="text" placeholder="Secure Password" 
                        class="w-full bg-gray-950 border border-gray-800 rounded-lg px-3 py-3 text-sm text-white focus:outline-none focus:border-emerald-500 transition">
             </div>
-            <div>
-                <label class="block text-xs text-gray-400 mb-1">New MQTT Password</label>
-                <input id="mqttPass" type="text" placeholder="e.g., mySecurePass123" 
-                       class="w-full bg-gray-950 border border-gray-800 rounded-lg px-3 py-3 text-sm text-white focus:outline-none focus:border-emerald-500 transition">
-            </div>
-            
-            <button id="submitBtn" onclick="provisionDevice()" 
+            <button id="btnProvision" onclick="provisionDevice()" 
                     class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium rounded-lg py-3 transition-all shadow-lg active:scale-[0.98]">
-                Create User in EMQX
+                Create Device in EMQX
             </button>
         </div>
 
-        <hr class="border-gray-800 my-6" />
+        <hr class="border-gray-800" />
 
         <!-- SECTION 2: MANAGE EXISTING DEVICES -->
         <div class="space-y-4">
             <h3 class="text-sm font-semibold text-blue-400 uppercase tracking-wider">2. Manage Devices</h3>
             
-            <button onclick="fetchUsers()" 
+            <button id="btnFetch" onclick="fetchUsers()" 
                     class="w-full bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium rounded-lg py-2 transition-all active:scale-[0.98]">
                 Load Active Devices
             </button>
 
             <!-- Box to display the retrieved users -->
-            <div id="userList" class="p-3 bg-gray-950 rounded-lg border border-gray-800 text-xs text-gray-400 font-mono min-h-[80px] max-h-[150px] overflow-y-auto whitespace-pre-wrap">
-                Click load to view users...
+            <div id="userList" class="p-3 bg-gray-950 rounded-lg border border-gray-800 text-xs text-gray-400 font-mono min-h-[60px] max-h-[120px] overflow-y-auto whitespace-pre-wrap">
+                Click load to view devices...
             </div>
 
             <!-- Delete User Input & Button -->
             <div class="flex gap-2 pt-2">
                 <input id="deleteUser" type="text" placeholder="Username to delete" 
                        class="flex-1 bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-red-500 transition">
-                <button onclick="deleteDevice()" 
+                <button id="btnDelete" onclick="deleteDevice()" 
                         class="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-medium transition-all active:scale-[0.95]">
                     Delete
                 </button>
             </div>
         </div>
 
+        <hr class="border-gray-800" />
+
+        <!-- SECTION 3: TOPIC ACCESS CONTROL (ACL) -->
+        <div class="space-y-4">
+            <h3 class="text-sm font-semibold text-purple-400 uppercase tracking-wider">3. Topic Permissions</h3>
+            <p class="text-xs text-gray-400 mb-2">Allow a user to communicate on a specific topic.</p>
+            
+            <div>
+                <input id="aclUser" type="text" placeholder="Target Username (e.g., esp32_01)" 
+                       class="w-full bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500 transition mb-2">
+                
+                <input id="aclTopic" type="text" placeholder="Shared Topic (e.g., campus/motor/1)" 
+                       class="w-full bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500 transition mb-2">
+                
+                <select id="aclAction" class="w-full bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500 transition mb-3">
+                    <option value="all">Allow Publish & Subscribe</option>
+                    <option value="publish">Allow Publish Only (Send Data)</option>
+                    <option value="subscribe">Allow Subscribe Only (Receive Data)</option>
+                </select>
+
+                <button id="btnAcl" onclick="setTopicRule()" 
+                        class="w-full bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg py-2 transition-all active:scale-[0.98]">
+                    Grant Topic Access
+                </button>
+            </div>
+        </div>
+
         <!-- Global Status Console -->
-        <div id="statusBox" class="hidden p-3 rounded-lg border text-xs font-mono transition-all mt-4">
+        <div id="statusBox" class="hidden p-3 rounded-lg border text-xs font-mono transition-all mt-4 break-words">
             Ready
         </div>
 
     </div>
 
+    <!-- MAIN LOGIC SCRIPT -->
     <script>
         // --- Helper Function: Show UI Status ---
         function showStatus(msg, type) {
             const box = document.getElementById('statusBox');
-            box.className = 'p-3 rounded-lg border text-xs font-mono transition-all block mt-4';
+            box.className = 'p-3 rounded-lg border text-xs font-mono transition-all block mt-4 break-words';
             
             if (type === 'error') {
                 box.classList.add('bg-red-950/50', 'border-red-800', 'text-red-400');
@@ -88,20 +111,17 @@
             box.innerText = msg;
         }
 
-        // --- CREATE: Provision a New User ---
+        // --- SECTION 1: PROVISION DEVICE ---
         async function provisionDevice() {
-            const btn = document.getElementById('submitBtn');
+            const btn = document.getElementById('btnProvision');
             const username = document.getElementById('mqttUser').value.trim();
             const password = document.getElementById('mqttPass').value.trim();
 
-            if (!username || !password) {
-                showStatus('Error: Username and Password required.', 'error');
-                return;
-            }
+            if (!username || !password) return showStatus('Error: Username and Password required.', 'error');
 
             btn.disabled = true;
-            btn.innerText = 'Communicating with Vercel...';
-            showStatus('Sending credentials to backend API...', 'info');
+            btn.innerText = 'Processing...';
+            showStatus(`Registering ${username}...`, 'info');
 
             try {
                 const response = await fetch('/api/provision', {
@@ -116,7 +136,7 @@
                     showStatus(`✅ Success: ${data.message}`, 'success');
                     document.getElementById('mqttUser').value = '';
                     document.getElementById('mqttPass').value = '';
-                    fetchUsers(); // Auto-refresh the list after creation
+                    fetchUsers(); // Auto-update list
                 } else {
                     showStatus(`❌ Error: ${data.error}`, 'error');
                 }
@@ -124,13 +144,16 @@
                 showStatus('❌ Network Error: Could not reach Vercel API', 'error');
             } finally {
                 btn.disabled = false;
-                btn.innerText = 'Create User in EMQX';
+                btn.innerText = 'Create Device in EMQX';
             }
         }
 
-        // --- READ: Get Back Saved Users ---
+        // --- SECTION 2: READ (FETCH) DEVICES ---
         async function fetchUsers() {
+            const btn = document.getElementById('btnFetch');
             const listBox = document.getElementById('userList');
+            
+            btn.disabled = true;
             listBox.innerText = 'Loading...';
             showStatus('Fetching active devices from EMQX...', 'info');
 
@@ -142,11 +165,9 @@
                     if (data.users.length === 0) {
                         listBox.innerText = 'No users found in EMQX.';
                     } else {
-                        // Extract user_id and display them
-                        const usernames = data.users.map(u => `• ${u.user_id}`).join('\n');
-                        listBox.innerText = usernames;
+                        listBox.innerText = data.users.map(u => `• ${u.user_id}`).join('\n');
                     }
-                    showStatus(`✅ Successfully loaded ${data.users.length} devices.`, 'success');
+                    showStatus(`✅ Loaded ${data.users.length} devices.`, 'success');
                 } else {
                     listBox.innerText = `Error: ${data.error}`;
                     showStatus(`❌ Error: ${data.error}`, 'error');
@@ -154,20 +175,20 @@
             } catch (error) {
                 listBox.innerText = 'Network Error.';
                 showStatus('❌ Network Error while fetching users.', 'error');
+            } finally {
+                btn.disabled = false;
             }
         }
 
-        // --- DELETE: Remove a User ---
+        // --- SECTION 2: DELETE DEVICE ---
         async function deleteDevice() {
+            const btn = document.getElementById('btnDelete');
             const username = document.getElementById('deleteUser').value.trim();
             
-            if (!username) {
-                showStatus('Please enter a username to delete.', 'error');
-                return;
-            }
+            if (!username) return showStatus('Please enter a username to delete.', 'error');
+            if (!confirm(`Permanently delete "${username}" and revoke access?`)) return;
 
-            if (!confirm(`Are you sure you want to permanently delete "${username}"?`)) return;
-
+            btn.disabled = true;
             showStatus(`Deleting ${username}...`, 'info');
 
             try {
@@ -182,12 +203,49 @@
                 if (response.ok || data.success) {
                     showStatus(`✅ Successfully deleted ${username}`, 'success');
                     document.getElementById('deleteUser').value = '';
-                    fetchUsers(); // Auto-refresh the list
+                    fetchUsers(); // Auto-update list
                 } else {
                     showStatus(`❌ Error: ${data.error}`, 'error');
                 }
             } catch (error) {
                 showStatus('❌ Network Error: Could not reach Vercel API', 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // --- SECTION 3: TOPIC ACL ---
+        async function setTopicRule() {
+            const btn = document.getElementById('btnAcl');
+            const username = document.getElementById('aclUser').value.trim();
+            const topic = document.getElementById('aclTopic').value.trim();
+            const action = document.getElementById('aclAction').value;
+
+            if (!username || !topic) return showStatus('Error: Target Username and Topic are required.', 'error');
+
+            btn.disabled = true;
+            showStatus(`Granting ${username} access to ${topic}...`, 'info');
+
+            try {
+                const response = await fetch('/api/acl', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, topic, action })
+                });
+
+                const data = await response.json();
+
+                if (response.ok || data.success) {
+                    showStatus(`✅ Success: ${data.message}`, 'success');
+                    document.getElementById('aclUser').value = '';
+                    document.getElementById('aclTopic').value = '';
+                } else {
+                    showStatus(`❌ Error: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showStatus('❌ Network Error: Could not reach Vercel API', 'error');
+            } finally {
+                btn.disabled = false;
             }
         }
     </script>
