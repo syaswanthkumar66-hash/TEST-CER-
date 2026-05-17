@@ -15,17 +15,18 @@ export default async function handler(req, res) {
     const apiUrl = process.env.EMQX_API_URL;
     const token = Buffer.from(`${appId}:${appSecret}`).toString('base64');
 
-    // 🎯 THE FIX: Changed '/clientid/' to '/clients/' in the URL path
-    const endpoint = `${apiUrl}/api/v5/authorization/sources/built_in_database/rules/clients/${clientId}`;
+    // 🎯 THE FIX: Target the main '/clients' folder (not the specific ID)
+    const endpoint = `${apiUrl}/api/v5/authorization/sources/built_in_database/rules/clients`;
 
     try {
         const response = await fetch(endpoint, {
-            method: 'PUT', // 🎯 THE FIX: EMQX v5 expects a PUT request to update specific rules
+            method: 'POST', // 🎯 THE FIX: POST is used to create new rules
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Basic ${token}`
             },
             body: JSON.stringify({
+                clientid: clientId, // 🎯 THE FIX: EMQX expects the ID inside the payload for a POST
                 rules: [
                     {
                         permission: "allow",
@@ -36,20 +37,31 @@ export default async function handler(req, res) {
             })
         });
 
-        if (response.ok || response.status === 204) {
+        // 201 Created or 200 OK or 204 No Content are all successes
+        if (response.ok || response.status === 201 || response.status === 204) {
             return res.status(200).json({ 
                 success: true, 
                 message: `✅ Granted Read/Write access to Client ID: ${clientId} for topic: ${topic}` 
             });
         } else {
-            const errorData = await response.json();
+            // 🎯 DEEP ERROR EXTRACTOR: Pull the exact error from EMQX
+            const errorText = await response.text();
+            let errorMessage = 'EMQX API Rejected the Request';
+            
+            try {
+                const errorData = JSON.parse(errorText);
+                errorMessage = errorData.message || errorData.reason || JSON.stringify(errorData);
+            } catch (e) {
+                errorMessage = errorText || `Status Code: ${response.status}`;
+            }
+
             return res.status(response.status).json({ 
                 success: false, 
-                error: errorData.message || 'EMQX API Rejected the Request' 
+                error: `EMQX Error: ${errorMessage}` 
             });
         }
     } catch (error) {
-        console.error('EMQX API Error:', error);
+        console.error('Vercel Fetch Error:', error);
         return res.status(500).json({ success: false, error: 'Internal Vercel Server Error' });
     }
 }
