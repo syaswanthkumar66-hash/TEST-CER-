@@ -15,12 +15,12 @@ export default async function handler(req, res) {
     const apiUrl = process.env.EMQX_API_URL;
     const token = Buffer.from(`${appId}:${appSecret}`).toString('base64');
 
-    // 🎯 TARGETING THE CLIENT ID ACL DATABASE
-    const endpoint = `${apiUrl}/api/v5/authorization/sources/built_in_database/rules/clientid/${clientId}`;
+    // 🎯 THE FIX: Changed '/clientid/' to '/clients/' in the URL path
+    const endpoint = `${apiUrl}/api/v5/authorization/sources/built_in_database/rules/clients/${clientId}`;
 
     try {
         const response = await fetch(endpoint, {
-            method: 'POST',
+            method: 'PUT', // 🎯 THE FIX: EMQX v5 expects a PUT request to update specific rules
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Basic ${token}`
@@ -29,7 +29,7 @@ export default async function handler(req, res) {
                 rules: [
                     {
                         permission: "allow",
-                        action: action || "all", // "publish", "subscribe", or "all"
+                        action: action || "all", 
                         topic: topic
                     }
                 ]
