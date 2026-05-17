@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IoTYK Complete Admin</title>
+    <title>IoTYK Enterprise Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-950 text-gray-100 min-h-screen flex items-center justify-center p-4 font-sans pb-20">
@@ -85,6 +85,15 @@
         <div class="space-y-4">
             <h3 class="text-sm font-semibold text-teal-400 uppercase tracking-wider">4. Hardware Topic Rules</h3>
             <p class="text-xs text-gray-400 mb-2">Grant a specific Client ID (MAC Address) access to a shared topic.</p>
+            
+            <div class="p-3 bg-gray-900 border border-gray-800 rounded-lg mb-4">
+                <button id="btnFetchClientRules" onclick="fetchClientRules()" 
+                        class="w-full bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium rounded-lg py-2 transition-all active:scale-[0.98] mb-2">
+                    Load Hardware Rules
+                </button>
+                <div id="clientRulesList" class="p-2 bg-gray-950 rounded border border-gray-800 text-xs text-gray-400 font-mono min-h-[60px] max-h-[150px] overflow-y-auto whitespace-pre-wrap">Click load to view rules...</div>
+            </div>
+
             <div>
                 <input id="clientIdAcl" type="text" placeholder="Client ID (e.g., esp32_A1B2C3)" 
                        class="w-full bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-teal-500 transition mb-2">
@@ -147,7 +156,7 @@
             } catch (e) { showStatus('❌ Network Error', 'error'); }
         }
 
-        // --- SECTION 2: FETCH & DELETE ---
+        // --- SECTION 2: FETCH & DELETE USERS ---
         async function fetchUsers() {
             const box = document.getElementById('userList');
             box.innerText = 'Loading...';
@@ -200,7 +209,7 @@
             } catch (e) { showStatus('❌ Network Error', 'error'); }
         }
 
-        // --- SECTION 4: CLIENT ID ACL ---
+        // --- SECTION 4: SET HARDWARE RULE ---
         async function setClientIdRule() {
             const clientId = document.getElementById('clientIdAcl').value.trim();
             const topic = document.getElementById('clientTopicAcl').value.trim();
@@ -219,11 +228,37 @@
                 if (res.ok || data.success) {
                     showStatus('✅ ' + data.message, 'success');
                     document.getElementById('clientTopicAcl').value = '';
+                    fetchClientRules(); 
                 } else {
                     showStatus('❌ Error: ' + data.error, 'error');
                 }
             } catch (e) { 
                 showStatus('❌ Network Error: Could not reach API', 'error'); 
+            }
+        }
+
+        // --- SECTION 4: FETCH HARDWARE RULES ---
+        async function fetchClientRules() {
+            const box = document.getElementById('clientRulesList');
+            box.innerText = 'Loading...';
+            try {
+                const res = await fetch('/api/list-client-rules');
+                const data = await res.json();
+                
+                if (data.success) {
+                    if (data.clients.length === 0) {
+                        box.innerText = 'No hardware rules found.';
+                    } else {
+                        box.innerText = data.clients.map(client => {
+                            let rulesText = client.rules.map(r => `  -> [${r.action}] ${r.topic}`).join('\n');
+                            return `• ${client.clientid}\n${rulesText}`;
+                        }).join('\n\n');
+                    }
+                } else {
+                    box.innerText = 'Error: ' + data.error;
+                }
+            } catch (e) { 
+                box.innerText = 'Network Error.'; 
             }
         }
     </script>
